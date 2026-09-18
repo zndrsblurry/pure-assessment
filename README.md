@@ -96,6 +96,15 @@ pnpm check           # Biome with safe auto-fixes
 `pnpm typecheck`, `pnpm test` and `pnpm dev` depend on `packages/shared` being built;
 running them through the root scripts lets Turborepo handle that order.
 
+Git hooks (Husky):
+
+- `pre-commit` — `lint-staged` runs Biome on the staged files only, so commits stay fast
+  and small work-in-progress commits are not blocked.
+- `pre-push` — `pnpm typecheck && pnpm test`; Turborepo's cache skips packages that
+  have not changed, so a docs-only push is near-instant.
+- Coverage thresholds are enforced by `pnpm test:coverage`, run before submission
+  rather than on every push.
+
 ## API
 
 Base URL `http://localhost:3000`. All bodies are JSON.
