@@ -1,0 +1,17 @@
+{
+	"name": "@purehomeriver-assessment/shared",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"typecheck": "tsc --noEmit",
+		"lint": "biome check ."
+	},
+	"devDependencies": {
+		"@purehomeriver-assessment/config": "workspace:*",
+		"typescript": "catalog:"
+	}
+}

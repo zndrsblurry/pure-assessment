@@ -1,0 +1,3 @@
+{
+	"extends": "@purehomeriver-assessment/config/tsconfig.base.json"
+}
