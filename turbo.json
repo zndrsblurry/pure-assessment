@@ -11,7 +11,7 @@
 			"dependsOn": ["^lint"]
 		},
 		"typecheck": {
-			"dependsOn": ["^typecheck"]
+			"dependsOn": ["^build"]
 		},
 		"test": {
 			"dependsOn": ["^build"]
@@ -22,7 +22,8 @@
 		},
 		"dev": {
 			"cache": false,
-			"persistent": true
+			"persistent": true,
+			"dependsOn": ["^build"]
 		}
 	},
 	"globalEnv": ["CI", "NODE_ENV", "PORT"],

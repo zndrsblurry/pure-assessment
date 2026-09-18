@@ -6,6 +6,6 @@ describe("App", () => {
 	it("renders the page heading", () => {
 		const wrapper = mount(App);
 
-		expect(wrapper.get("h1").text()).toBe("Property Agent Assessment");
+		expect(wrapper.get("h1").text()).toBe("Pure Assessment");
 	});
 });
