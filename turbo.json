@@ -26,6 +26,6 @@
 			"dependsOn": ["^build"]
 		}
 	},
-	"globalEnv": ["CI", "NODE_ENV", "PORT"],
+	"globalEnv": ["CI", "NODE_ENV", "PORT", "WEB_ORIGIN", "VITE_API_URL"],
 	"globalDependencies": [".env*", "apps/*/.env*", "biome.json"]
 }

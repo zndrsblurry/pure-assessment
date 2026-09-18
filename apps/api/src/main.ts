@@ -14,6 +14,11 @@ async function bootstrap() {
 	);
 
 	setupApp(app);
+	// @fastify/cors only allows GET/HEAD/POST unless methods are listed explicitly.
+	app.enableCors({
+		origin: process.env.WEB_ORIGIN ?? "http://localhost:5173",
+		methods: ["GET", "POST", "PUT", "DELETE"],
+	});
 
 	const openApiConfig = new DocumentBuilder()
 		.setTitle("Property Agent API")
