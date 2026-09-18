@@ -25,7 +25,11 @@ const {
 	lastSave,
 	isEditing,
 	isBusy,
+	isDirty,
+	canSubmit,
+	canDiscard,
 	submit,
+	discardChanges,
 	clearFieldError,
 } = useAgentForm(props.agentId);
 
@@ -35,6 +39,14 @@ const submitLabel = computed(() => {
 	if (status.value === "submitting") return "Saving…";
 	return isEditing.value ? "Update Agent" : "Create Agent";
 });
+
+const showPristineHint = computed(
+	() =>
+		isEditing.value &&
+		!isDirty.value &&
+		!isBusy.value &&
+		status.value !== "saved",
+);
 
 const fields: {
 	name: AgentField;
@@ -103,15 +115,34 @@ const fields: {
 			</CardContent>
 
 			<CardFooter class="flex flex-col items-stretch gap-3 pt-4">
-				<Button type="submit" :disabled="isBusy">
-					{{ submitLabel }}
-				</Button>
+				<div class="flex gap-2">
+					<Button
+						type="submit"
+						class="flex-1"
+						:disabled="!canSubmit"
+						:aria-describedby="showPristineHint ? 'pristine-hint' : undefined"
+					>
+						{{ submitLabel }}
+					</Button>
+					<Button
+						v-if="canDiscard"
+						type="button"
+						variant="outline"
+						:disabled="isBusy"
+						@click="discardChanges"
+					>
+						Discard changes
+					</Button>
+				</div>
 				<p v-if="formError" class="text-destructive text-sm" role="alert">
 					{{ formError }}
 				</p>
 				<p v-else-if="status === 'saved'" class="text-muted-foreground text-sm" aria-live="polite">
 					Agent {{ lastSave }}. Keep this URL to edit it later. ID:
 					<code class="break-all">{{ agentId }}</code>
+				</p>
+				<p v-else-if="showPristineHint" id="pristine-hint" class="text-muted-foreground text-sm">
+					No changes to save.
 				</p>
 			</CardFooter>
 		</form>

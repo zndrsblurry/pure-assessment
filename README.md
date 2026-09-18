@@ -199,7 +199,9 @@ the assumptions behind them. Only `property_agents` is implemented.
 
 One screen. `/` creates an agent; `/?id=<uuid>` loads it and updates it. After a
 successful create the app rewrites the URL to include the id, so a refresh stays in
-edit mode and the button switches from **Create Agent** to **Update Agent**.
+edit mode and the button switches from **Create Agent** to **Update Agent**. In edit
+mode the form tracks the last saved values: **Update Agent** stays disabled until a
+field actually differs, and **Discard changes** restores the saved values.
 
 A query parameter was chosen over Vue Router because the scaffold ships without a
 router and one form does not justify adding one. Moving to `/agent/:id` later is a

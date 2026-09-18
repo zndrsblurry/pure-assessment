@@ -2,7 +2,7 @@ import {
 	type AgentInput,
 	agentInputSchema,
 } from "@purehomeriver-assessment/shared";
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 import {
 	ApiClientError,
 	type ApiErrorDetail,
@@ -22,6 +22,11 @@ const emptyInput = (): AgentInput => ({
 	mobileNumber: "",
 });
 
+const agentFields = Object.keys(emptyInput()) as AgentField[];
+
+const pickInput = (source: AgentInput): AgentInput =>
+	Object.fromEntries(agentFields.map((f) => [f, source[f]])) as AgentInput;
+
 const fieldErrorsFrom = (details: ApiErrorDetail[]): FieldErrors =>
 	Object.fromEntries(
 		details.map(({ path, message }) => [path as AgentField, message]),
@@ -35,14 +40,35 @@ export function useAgentForm(initialId: string | null) {
 	const status = ref<FormStatus>(initialId ? "loading" : "idle");
 	const formError = ref<string | null>(null);
 	const lastSave = ref<"created" | "updated" | null>(null);
+	// Last server-confirmed values; null until something has been loaded or saved.
+	const savedInput = ref<AgentInput | null>(null);
 
 	const isEditing = computed(() => agentId.value !== null);
 	const isBusy = computed(
 		() => status.value === "loading" || status.value === "submitting",
 	);
+	const isDirty = computed(() => {
+		const saved = savedInput.value;
+		return !saved || agentFields.some((f) => form[f] !== saved[f]);
+	});
+	const canSubmit = computed(() => !isBusy.value && isDirty.value);
+	const canDiscard = computed(() => savedInput.value !== null && isDirty.value);
 
 	function setForm(input: AgentInput) {
 		Object.assign(form, input);
+	}
+
+	function applySaved(agent: AgentInput) {
+		savedInput.value = pickInput(agent);
+		setForm(savedInput.value);
+	}
+
+	function discardChanges() {
+		if (!savedInput.value) return;
+		setForm(savedInput.value);
+		fieldErrors.value = {};
+		formError.value = null;
+		status.value = "idle";
 	}
 
 	function clearFieldError(field: AgentField) {
@@ -54,7 +80,7 @@ export function useAgentForm(initialId: string | null) {
 	async function load(id: string) {
 		status.value = "loading";
 		try {
-			setForm(await getAgent(id));
+			applySaved(await getAgent(id));
 			status.value = "idle";
 		} catch (error) {
 			status.value = "error";
@@ -82,7 +108,7 @@ export function useAgentForm(initialId: string | null) {
 	}
 
 	async function submit() {
-		if (isBusy.value) return;
+		if (!canSubmit.value) return;
 		formError.value = null;
 		const input = validate();
 		if (!input) return;
@@ -94,7 +120,7 @@ export function useAgentForm(initialId: string | null) {
 				: await createAgent(input);
 			lastSave.value = agentId.value ? "updated" : "created";
 			agentId.value = saved.id;
-			setForm(saved);
+			applySaved(saved);
 			status.value = "saved";
 		} catch (error) {
 			status.value = "error";
@@ -117,6 +143,10 @@ export function useAgentForm(initialId: string | null) {
 		}
 	}
 
+	watch(isDirty, (dirty) => {
+		if (dirty && status.value === "saved") status.value = "idle";
+	});
+
 	onMounted(() => {
 		if (initialId) load(initialId);
 	});
@@ -130,7 +160,11 @@ export function useAgentForm(initialId: string | null) {
 		lastSave,
 		isEditing,
 		isBusy,
+		isDirty,
+		canSubmit,
+		canDiscard,
 		submit,
+		discardChanges,
 		clearFieldError,
 	};
 }

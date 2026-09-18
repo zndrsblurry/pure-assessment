@@ -160,7 +160,8 @@ describe("AgentForm", () => {
 
 		resolve(savedAgent);
 		await flushPromises();
-		expect(button.attributes("disabled")).toBeUndefined();
+		expect(wrapper.get("#email").attributes("disabled")).toBeUndefined();
+		expect(button.text()).toBe("Update Agent");
 	});
 
 	it("shows a duplicate email conflict on the email field", async () => {
@@ -205,6 +206,83 @@ describe("AgentForm", () => {
 		expect(alerts(wrapper)).toEqual(["Could not reach the API"]);
 	});
 
+	it("keeps Create Agent enabled on an empty form", () => {
+		const wrapper = mountForm();
+
+		expect(
+			wrapper.get("button[type=submit]").attributes("disabled"),
+		).toBeUndefined();
+	});
+
+	it("disables Update Agent until a field differs from the saved agent", async () => {
+		vi.mocked(getAgent).mockResolvedValue(savedAgent);
+		const wrapper = mountForm(savedAgent.id);
+		await flushPromises();
+
+		const submitButton = wrapper.get("button[type=submit]");
+		expect(submitButton.attributes("disabled")).toBeDefined();
+		expect(wrapper.text()).toContain("No changes to save.");
+		expect(wrapper.find("button[type=button]").exists()).toBe(false);
+
+		await submit(wrapper);
+		expect(updateAgent).not.toHaveBeenCalled();
+
+		await wrapper.get("#lastName").setValue("King");
+		expect(submitButton.attributes("disabled")).toBeUndefined();
+		expect(wrapper.text()).not.toContain("No changes to save.");
+
+		await wrapper.get("#lastName").setValue("Lovelace");
+		expect(submitButton.attributes("disabled")).toBeDefined();
+	});
+
+	it("discards unsaved edits back to the saved values", async () => {
+		vi.mocked(getAgent).mockResolvedValue(savedAgent);
+		const wrapper = mountForm(savedAgent.id);
+		await flushPromises();
+		await wrapper.get("#firstName").setValue("Augusta");
+		await wrapper.get("#email").setValue("broken");
+		await submit(wrapper);
+		expect(alerts(wrapper)).toHaveLength(1);
+
+		await wrapper.get("button[type=button]").trigger("click");
+
+		expect((wrapper.get("#firstName").element as HTMLInputElement).value).toBe(
+			"Ada",
+		);
+		expect((wrapper.get("#email").element as HTMLInputElement).value).toBe(
+			input.email,
+		);
+		expect(alerts(wrapper)).toHaveLength(0);
+		expect(wrapper.find("button[type=button]").exists()).toBe(false);
+		expect(
+			wrapper.get("button[type=submit]").attributes("disabled"),
+		).toBeDefined();
+	});
+
+	it("clears the saved message and re-enables Update once the user edits again", async () => {
+		vi.mocked(getAgent).mockResolvedValue(savedAgent);
+		vi.mocked(updateAgent).mockResolvedValue({
+			...savedAgent,
+			lastName: "King",
+		});
+		const wrapper = mountForm(savedAgent.id);
+		await flushPromises();
+		await wrapper.get("#lastName").setValue("King");
+		await submit(wrapper);
+
+		expect(wrapper.text()).toContain("Agent updated.");
+		expect(
+			wrapper.get("button[type=submit]").attributes("disabled"),
+		).toBeDefined();
+
+		await wrapper.get("#lastName").setValue("Byron");
+
+		expect(wrapper.text()).not.toContain("Agent updated.");
+		expect(
+			wrapper.get("button[type=submit]").attributes("disabled"),
+		).toBeUndefined();
+	});
+
 	it("explains when the agent being edited does not exist", async () => {
 		vi.mocked(getAgent).mockRejectedValue(
 			new ApiClientError(404, "AGENT_NOT_FOUND", "Agent was not found"),
@@ -213,5 +291,6 @@ describe("AgentForm", () => {
 		await flushPromises();
 
 		expect(alerts(wrapper)[0]).toMatch(/no longer exists/);
+		expect(wrapper.find("button[type=button]").exists()).toBe(false);
 	});
 });
